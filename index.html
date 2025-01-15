@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Registration</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-card">
+            <div class="header">
+                <h1>Team Registration</h1>
+                <p>Fill in your team details to participate</p>
+            </div>
+            
+            <form id="registrationForm">
+                <!-- Team Name -->
+                <div class="form-section">
+                    <label for="teamName">Team Name</label>
+                    <input type="text" id="teamName" name="teamName" required minlength="3">
+                    <span class="error" id="teamNameError"></span>
+                </div>
+
+                <!-- Team Size -->
+                <div class="form-section">
+                    <label for="teamSize">Team Size</label>
+                    <select id="teamSize" name="teamSize">
+                        <option value="4">4 Members</option>
+                        <option value="5">5 Members</option>
+                        <option value="6">6 Members</option>
+                    </select>
+                </div>
+
+                <!-- Team Members -->
+                <div id="teamMembers" class="team-members">
+                    <!-- Dynamic member fields will be inserted here -->
+                </div>
+
+                <!-- Problem Statement and Domain -->
+                <div class="form-grid">
+                    <div class="form-section">
+                        <label for="problemId">Problem Statement ID</label>
+                        <input type="text" id="problemId" name="problemId" required>
+                        <span class="error" id="problemIdError"></span>
+                    </div>
+                    <div class="form-section">
+                        <label for="domain">Domain</label>
+                        <input type="text" id="domain" name="domain" required minlength="2">
+                        <span class="error" id="domainError"></span>
+                    </div>
+                </div>
+
+                <!-- Abstract Upload -->
+                <div class="form-section">
+                    <label for="abstract">Upload Abstract (PDF)</label>
+                    <div class="file-upload" id="dropZone">
+                        <div class="upload-icon">📄</div>
+                        <input type="file" id="abstract" name="abstract" accept=".pdf" required>
+                        <p>Drag and drop or click to upload PDF (max 10MB)</p>
+                    </div>
+                    <span class="error" id="abstractError"></span>
+                    <div id="selectedFile" class="selected-file"></div>
+                </div>
+
+                <button type="submit" id="submitBtn" disabled>Please Fill All Required Fields</button>
+            </form>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
