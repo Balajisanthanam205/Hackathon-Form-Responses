@@ -7,14 +7,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedFileDiv = document.getElementById('selectedFile');
     const dropZone = document.getElementById('dropZone');
 
-    // Google Apps Script URL
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbwjpCP2FMq6ECwMhHflqJ8eoVGaicD7ljrRr9fsoPsFChK9n4kq7-EC5s80TCgaxYcz/exec';
+    // Update this URL with your deployed Google Apps Script URL
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbw11i59ho0XAQ8oL4ldcGGCdoY3YUXtLWhAIyVo2Zs89QX695DQn9Q8LBA0alXCqAi7/exec';
 
     // Validation patterns
     const patterns = {
         email: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
         phone: /^\d{10}$/
     };
+
+    // Update team size options
+    function initializeTeamSizeOptions() {
+        teamSizeSelect.innerHTML = `
+            <option value="">Select Team Size</option>
+            <option value="1">1 Member</option>
+            <option value="2">2 Members</option>
+            <option value="3">3 Members</option>
+            <option value="4">4 Members</option>
+            <option value="5">5 Members</option>
+            <option value="6">6 Members</option>
+        `;
+    }
 
     function createMemberFields(index) {
         const memberCard = document.createElement('div');
@@ -51,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateTeamMembers() {
-        const size = parseInt(teamSizeSelect.value);
+        const size = parseInt(teamSizeSelect.value) || 0;
         teamMembersContainer.innerHTML = '';
         for (let i = 0; i < size; i++) {
             teamMembersContainer.appendChild(createMemberFields(i));
@@ -92,38 +105,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // Validate file input
         if (!abstractInput.files[0]) {
             document.getElementById('abstractError').textContent = 'Abstract file is required';
             isValid = false;
+        } else {
+            const file = abstractInput.files[0];
+            if (file.type !== 'application/pdf') {
+                document.getElementById('abstractError').textContent = 'Please upload a PDF file';
+                isValid = false;
+            } else if (file.size > 10 * 1024 * 1024) {
+                document.getElementById('abstractError').textContent = 'File size must be less than 10MB';
+                isValid = false;
+            } else {
+                document.getElementById('abstractError').textContent = '';
+            }
         }
 
         submitBtn.disabled = !isValid;
         submitBtn.textContent = isValid ? 'Submit' : 'Please Fill All Required Fields';
-    }
-
-    function handleFile(file) {
-        if (file) {
-            if (file.type !== 'application/pdf') {
-                document.getElementById('abstractError').textContent = 'Please upload a PDF file';
-                selectedFileDiv.textContent = '';
-                selectedFileDiv.className = 'selected-file invalid';
-                return false;
-            } else if (file.size > 10 * 1024 * 1024) {
-                document.getElementById('abstractError').textContent = 'File size must be less than 10MB';
-                selectedFileDiv.textContent = '';
-                selectedFileDiv.className = 'selected-file invalid';
-                return false;
-            } else {
-                document.getElementById('abstractError').textContent = '';
-                selectedFileDiv.textContent = `Selected file: ${file.name}`;
-                selectedFileDiv.className = 'selected-file valid';
-                return true;
-            }
-        } else {
-            selectedFileDiv.textContent = '';
-            selectedFileDiv.className = 'selected-file';
-            return false;
-        }
+        return isValid;
     }
 
     // Event Listeners
@@ -133,7 +134,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // File Upload Handling
     abstractInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
-        handleFile(file);
+        if (file) {
+            if (file.type !== 'application/pdf') {
+                document.getElementById('abstractError').textContent = 'Please upload a PDF file';
+                selectedFileDiv.textContent = '';
+                selectedFileDiv.className = 'selected-file invalid';
+            } else if (file.size > 10 * 1024 * 1024) {
+                document.getElementById('abstractError').textContent = 'File size must be less than 10MB';
+                selectedFileDiv.textContent = '';
+                selectedFileDiv.className = 'selected-file invalid';
+            } else {
+                document.getElementById('abstractError').textContent = '';
+                selectedFileDiv.textContent = `Selected file: ${file.name}`;
+                selectedFileDiv.className = 'selected-file valid';
+            }
+        } else {
+            selectedFileDiv.textContent = '';
+            selectedFileDiv.className = 'selected-file';
+        }
         validateForm();
     });
 
@@ -158,24 +176,40 @@ document.addEventListener('DOMContentLoaded', () => {
             dataTransfer.items.add(file);
             abstractInput.files = dataTransfer.files;
             
-            handleFile(file);
+            if (file.type !== 'application/pdf') {
+                document.getElementById('abstractError').textContent = 'Please upload a PDF file';
+                selectedFileDiv.textContent = '';
+                selectedFileDiv.className = 'selected-file invalid';
+            } else if (file.size > 10 * 1024 * 1024) {
+                document.getElementById('abstractError').textContent = 'File size must be less than 10MB';
+                selectedFileDiv.textContent = '';
+                selectedFileDiv.className = 'selected-file invalid';
+            } else {
+                document.getElementById('abstractError').textContent = '';
+                selectedFileDiv.textContent = `Selected file: ${file.name}`;
+                selectedFileDiv.className = 'selected-file valid';
+            }
             validateForm();
         }
     });
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!submitBtn.disabled) {
+        if (!submitBtn.disabled && validateForm()) {
             const formData = new FormData(form);
             const file = abstractInput.files[0];
+            
+            // Create payload for Google Sheets
             const payload = {
+                timestamp: new Date().toISOString(),
                 teamName: formData.get('teamName'),
                 teamSize: parseInt(formData.get('teamSize')),
-                members: [],
                 problemId: formData.get('problemId'),
-                domain: formData.get('domain')
+                domain: formData.get('domain'),
+                members: []
             };
 
+            // Collect member details
             for (let i = 0; i < payload.teamSize; i++) {
                 payload.members.push({
                     name: formData.get(`members[${i}].name`),
@@ -186,12 +220,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+
+                // Create form data for file upload
                 const requestBody = new FormData();
                 requestBody.append('payload', JSON.stringify(payload));
                 requestBody.append('abstract', file);
-
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Submitting...';
 
                 const response = await fetch(scriptURL, {
                     method: 'POST',
@@ -200,18 +235,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.ok) {
                     const result = await response.json();
-                    alert('Form submitted successfully!');
-                    console.log('Google Script Response:', result);
-                    form.reset();
-                    selectedFileDiv.textContent = '';
-                    selectedFileDiv.className = 'selected-file';
-                    updateTeamMembers();
+                    if (result.status === 'success') {
+                        alert('Registration successful! Your details have been saved.');
+                        form.reset();
+                        selectedFileDiv.textContent = '';
+                        selectedFileDiv.className = 'selected-file';
+                        updateTeamMembers();
+                    } else {
+                        throw new Error(result.message || 'Submission failed');
+                    }
                 } else {
-                    alert('Error submitting form. Please try again later.');
+                    throw new Error('Server response was not ok');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error submitting form. Please check your network connection and try again.');
+                alert('Error submitting form. Please try again later.');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Submit';
@@ -220,5 +258,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initialize form
+    initializeTeamSizeOptions();
     updateTeamMembers();
 });
